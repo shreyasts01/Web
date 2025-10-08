@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Smart Recipe Manager</title>
+<style>
+:root{
+  --accent:#2b6cb0;
+  --muted:#6b7280;
+  --card-bg: #ffffff;
+  --glass: rgba(255,255,255,0.85);
+  --radius: 14px;
+  --shadow: 0 6px 18px rgba(11,22,39,0.08);
+  --success: #16a34a;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background: linear-gradient(180deg, #f3f7fb 0%, #ffffff 100%);
+  color:#0f172a;
+  min-height:100vh;
+  padding:24px;
+}
+header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;}
+.brand{display:flex;gap:12px;align-items:center;}
+.logo{width:56px;height:56px;border-radius:12px;background: linear-gradient(135deg,#2563eb,#06b6d4);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;box-shadow: 0 6px 20px rgba(37,99,235,0.18);font-size:18px;}
+h1{margin:0;font-size:20px}
+p.subtitle{margin:0;color:var(--muted);font-size:13px}
+.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:8px;}
+input[type="text"], select{padding:10px 12px;border-radius:10px;border:1px solid #e6edf3;min-width:180px;font-size:14px;background: white;box-shadow:var(--shadow);}
+.btn{background:var(--accent);color:white;border:none;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600;box-shadow: 0 6px 18px rgba(43,108,176,0.14);}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(43,108,176,0.12);box-shadow:none;}
+.small{padding:8px 10px;font-size:13px;border-radius:8px}
+.grid{display:grid;grid-template-columns: repeat(4, 1fr);gap:18px;margin-top:18px;}
+@media (max-width:1100px){.grid{grid-template-columns: repeat(3, 1fr)}}
+@media (max-width:800px){.grid{grid-template-columns: repeat(2, 1fr)}header{align-items:flex-start}}
+@media (max-width:480px){.grid{grid-template-columns: 1fr}.controls{flex-direction:column;align-items:stretch}input[type="text"]{width:100%}}
+.card{background:var(--card-bg);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;min-height:300px;transition:transform .18s ease, box-shadow .18s ease;position:relative;}
+.card:hover{transform:translateY(-8px)}
+.card .media{height:150px;width:100%;object-fit:cover;background:#eee;}
+.card-body{padding:14px;display:flex;flex-direction:column;gap:8px;flex:1;}
+.meta{display:flex;gap:8px;font-size:12px;color:var(--muted);flex-wrap:wrap;}
+.title{font-weight:700;font-size:16px;margin:0;}
+.desc{font-size:13px;color:#374151;margin:0;flex:1;}
+.card-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px;border-top:1px dashed #eef2f7;background:linear-gradient(180deg,rgba(0,0,0,0.01),transparent);}
+.chip{display:inline-flex;gap:8px;align-items:center;padding:6px 8px;border-radius:999px;background:#f1f5f9;font-size:12px;color:#334155;}
+.fav-btn{display:inline-flex;gap:8px;align-items:center;cursor:pointer;background:transparent;border:none;font-size:14px;color:var(--muted);}
+.fav-btn.active{color:var(--success); font-weight:700}
+.overlay{position:fixed;inset:0;background:rgba(10,20,30,0.45);display:none;align-items:center;justify-content:center;z-index:60;padding:18px;}
+.overlay.show{display:flex}
+.modal{width:100%;max-width:900px;background:white;border-radius:12px;padding:18px;max-height:90vh;overflow:auto;box-shadow: 0 20px 50px rgba(5,15,30,0.25);}
+.modal .row{display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap}
+.modal .col{flex:1; min-width:230px}
+.ingredients li, .steps li{margin:6px 0}
+.close{position:absolute;right:18px;top:18px;background:transparent;border:none;font-size:16px;cursor:pointer;color:var(--muted)}
+.empty{text-align:center;color:var(--muted);padding:50px;border-radius:12px;background:#fff;box-shadow:var(--shadow);}
+footer{margin-top:26px;color:var(--muted);font-size:13px;text-align:center;}
+.login-panel{background:linear-gradient(180deg,white, #f8fbff);padding:14px;border-radius:12px;box-shadow:var(--shadow);display:flex;gap:8px;align-items:center;}
+.login-panel input{min-width:220px}
+</style>
+</head>
+<body>
+<header>
+<div class="brand">
+<div class="logo">SR</div>
+<div>
+<h1>Smart Recipe Manager</h1>
+<p class="subtitle">View · Search · Filter · Favourite — all offline using Local Storage</p>
+</div>
+</div>
+<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+<div class="login-panel" id="loginPanel">
+<span id="userLabel">Not logged in</span>
+<input type="email" id="emailInput" placeholder="Enter email to login" />
+<button class="btn small" id="loginBtn">Login</button>
+<button class="btn ghost small" id="logoutBtn" style="display:none">Logout</button>
+</div>
+</div>
+</header>
+<section class="controls">
+<input type="text" id="search" placeholder="Search recipes by name..." />
+<select id="filterType">
+<option value="">All Type (Veg / Non-Veg)</option>
+<option value="Veg">Veg</option>
+<option value="Non-Veg">Non-Veg</option>
+</select>
+<select id="filterMeal">
+<option value="">All Meal Times</option>
+<option value="Breakfast">Breakfast</option>
+<option value="Lunch">Lunch</option>
+<option value="Dinner">Dinner</option>
+<option value="Snack">Snack</option>
+</select>
+<select id="filterTaste">
+<option value="">All Taste Profiles</option>
+<option value="Sweet">Sweet</option>
+<option value="Spicy">Spicy</option>
+<option value="Mild">Mild</option>
+<option value="Savory">Savory</option>
+</select>
+<button class="btn small" id="clearFilters">Clear Filters</button>
+<button class="btn ghost small" id="showFavsBtn">Show Favourites</button>
+</section>
+<main>
+<div id="grid" class="grid" aria-live="polite"></div>
+<div id="empty" class="empty" style="display:none;margin-top:18px">No recipes found. Try clearing filters or searching something else.</div>
+</main>
+<footer>Built for hackathons • Uses localStorage for login & favourites • Responsive layout</footer>
+<div class="overlay" id="overlay" aria-hidden="true">
+<div class="modal" role="dialog" aria-modal="true">
+<button class="close" id="closeModal">&times;</button>
+<div id="modalContent"></div>
+</div>
+</div>
+<script>
+const RECIPES = [
+{name:"Veggie Delight",type:"Veg",meal:"Lunch",taste:"Savory",desc:"Healthy veggie mix.",imgs:["https://upload.wikimedia.org/wikipedia/commons/3/3f/Vegetable_salad.jpg","https://upload.wikimedia.org/wikipedia/commons/f/f1/Vegetable_Salad_%281%29.jpg"],full:"Fresh healthy mix of carrots, broccoli, beans, peas with dressing."},
+{name:"Spicy Chicken Curry",type:"Non-Veg",meal:"Dinner",taste:"Spicy",desc:"Rich spicy curry.",imgs:["https://upload.wikimedia.org/wikipedia/commons/3/33/Chicken_curry.jpg","https://upload.wikimedia.org/wikipedia/commons/b/b5/Chicken_curry_in_a_pan.jpg"],full:"Rich chicken curry with spices, coconut milk served with rice or bread."},
+{name:"Pancakes",type:"Veg",meal:"Breakfast",taste:"Sweet",desc:"Fluffy pancakes.",imgs:["https://upload.wikimedia.org/wikipedia/commons/9/94/Stack_of_pancakes.jpg","https://upload.wikimedia.org/wikipedia/commons/4/46/Pancakes_with_syrup.jpg"],full:"Fluffy homemade pancakes with maple syrup and berries."},
+{name:"Chocolate Cake",type:"Veg",meal:"Dessert",taste:"Sweet",desc:"Rich chocolate flavor.",imgs:["https://upload.wikimedia.org/wikipedia/commons/7/70/Chocolate_cake.jpg","https://upload.wikimedia.org/wikipedia/commons/0/00/Chocolate_Cake_Slice.jpg"],full:"Decadent chocolate cake with rich frosting and moist texture."},
+{name:"Caesar Salad",type:"Veg",meal:"Lunch",taste:"Savory",desc:"Classic Caesar salad.",imgs:["https://upload.wikimedia.org/wikipedia/commons/6/6b/Caesar_salad_%282%29.jpg","https://upload.wikimedia.org/wikipedia/commons/2/2c/Caesar_Salad_in_Bowl.jpg"],full:"Crisp romaine lettuce tossed with Caesar dressing, croutons, and parmesan cheese."},
+{name:"Grilled Salmon",type:"Non-Veg",meal:"Dinner",taste:"Savory",desc:"Healthy grilled fish.",imgs:["https://upload.wikimedia.org/wikipedia/commons/1/1e/Grilled_salmon.jpg","https://upload.wikimedia.org/wikipedia/commons/8/89/Grilled_salmon_with_asparagus.jpg"],full:"Grilled salmon fillet served with asparagus and lemon."}
+];
+const LS_FAV = 'sr_favourites_v1';
+const LS_USER = 'sr_user_email_v1';
+let favourites = new Set(JSON.parse(localStorage.getItem(LS_FAV) || '[]'));
+let loggedInEmail = localStorage.getItem(LS_USER) || null;
+let showingFavouritesOnly = false;
+const grid = document.getElementById('grid');
+const searchEl = document.getElementById('search');
+const filterTypeEl = document.getElementById('filterType');
+const filterMealEl = document.getElementById('filterMeal');
+const filterTasteEl = document.getElementById('filterTaste');
+const clearFiltersBtn = document.getElementById('clearFilters');
+const showFavsBtn = document.getElementById('showFavsBtn');
+const overlay = document.getElementById('overlay');
+const modalContent = document.getElementById('modalContent');
+const closeModalBtn = document.getElementById('closeModal');
+const emptyEl = document.getElementById('empty');
+const emailInput = document.getElementById('emailInput');
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const userLabel = document.getElementById('userLabel');
+const loginPanel = document.getElementById('loginPanel');
+
+function saveFavourites(){localStorage.setItem(LS_FAV, JSON.stringify(Array.from(favourites)));}
+function setLoggedIn(email){loggedInEmail = email;if(email){localStorage.setItem(LS_USER, email);userLabel.textContent = `Logged in as ${email}`;emailInput.style.display = 'none';loginBtn.style.display = 'none';logoutBtn.style.display = 'inline-block';} else {localStorage.removeItem(LS_USER);userLabel.textContent = 'Not logged in';emailInput.style.display = '';loginBtn.style.display = '';logoutBtn.style.display = 'none';}}
+
+function createCard(recipe){
+  const card = document.createElement('article');
+  card.className = 'card';
+  card.innerHTML = `<img class="media" src="${recipe.imgs[0]}" alt="${recipe.name}" loading="lazy" />
+    <div class="card-body">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div>
+          <h2 class="title">${recipe.name}</h2>
+          <p class="desc">${recipe.desc}</p>
+        </div>
+        <button class="fav-btn ${favourites.has(recipe.name)?'active':''}">❤</button>
+      </div>
+      <div class="meta"><span class="chip">${recipe.type}</span><span class="chip">${recipe.meal}</span><span class="chip">${recipe.taste}</span></div>
+    </div>
+    <div class="card-footer"><button class="btn small view-btn">View Recipe</button></div>`;
+  card.querySelector('.fav-btn').onclick = e=>{e.stopPropagation();favourites.has(recipe.name)?favourites.delete(recipe.name):favourites.add(recipe.name);saveFavourites();card.querySelector('.fav-btn').classList.toggle('active');};
+  card.querySelector('.view-btn').onclick = ()=>openModal(recipe);
+  return card;
+}
+function renderRecipes(){
+  grid.innerHTML='';
+  let filtered = RECIPES.filter(r=>{
+    let matches = true;
+    if(searchEl.value)matches&=r.name.toLowerCase().includes(searchEl.value.toLowerCase());
+    if(filterTypeEl.value)matches&=r.type===filterTypeEl.value;
+    if(filterMealEl.value)matches&=r.meal===filterMealEl.value;
+    if(filterTasteEl.value)matches&=r.taste===filterTasteEl.value;
+    if(showingFavouritesOnly)matches&=favourites.has(r.name);
+    return matches;
+  });
+  if(filtered.length===0){emptyEl.style.display='block';}else{emptyEl.style.display='none';}
+  filtered.forEach(r=>grid.appendChild(createCard(r)));
+}
+function openModal(recipe){
+  modalContent.innerHTML=`<div class="row"><div class="col"><h2>${recipe.name}</h2><p>${recipe.full}</p><ul>${recipe.imgs.map(img=>`<li><img src="${img}" style="max-width:100%;border-radius:8px"/></li>`).join('')}</ul></div></div>`;
+  overlay.classList.add('show');
+}
+closeModalBtn.onclick=()=>overlay.classList.remove('show');
+overlay.onclick=e=>{if(e.target===overlay)overlay.classList.remove('show');};
+searchEl.oninput=renderRecipes;
+filterTypeEl.onchange=renderRecipes;
+filterMealEl.onchange=renderRecipes;
+filterTasteEl.onchange=renderRecipes;
+clearFiltersBtn.onclick=()=>{searchEl.value='';filterTypeEl.value='';filterMealEl.value='';filterTasteEl.value='';renderRecipes();};
+showFavsBtn.onclick=()=>{showingFavouritesOnly=!showingFavouritesOnly;renderRecipes();};
+loginBtn.onclick=()=>{if(emailInput.value.trim()){setLoggedIn(emailInput.value.trim());}};
+logoutBtn.onclick=()=>{setLoggedIn(null);};
+setLoggedIn(loggedInEmail);
+renderRecipes();
+</script>
+</body>
+</html>
